@@ -5,18 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Package Tracker</title>
   <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #e6f0f3;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      height: 100vh;
+      padding-top: 40px;
       margin: 0;
     }
     .tracker-box {
@@ -25,10 +19,8 @@
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       width: 340px;
-      animation: fadeIn 0.6s ease-in-out;
     }
     h2 {
-      margin-top: 0;
       text-align: center;
       color: #2a4d69;
       margin-bottom: 20px;
@@ -48,37 +40,19 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover {
-      opacity: 0.9;
     }
     #clearBtn { background: #ccc; color: #000; }
     #trackBtn { background: #2a9d8f; color: #fff; }
-    #result {
-      margin-top: 20px;
-      color: #264653;
-      font-size: 14px;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-    .recent-history { margin-top: 20px; }
-    .recent-history h4 {
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
     .recent-item {
       background: #f2f2f2;
       border-radius: 6px;
-      padding: 6px 10px;
-      margin-bottom: 5px;
+      padding: 10px;
+      margin-top: 10px;
     }
     .recent-item .top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 5px;
     }
     .remove-btn {
       background: #e53e3e;
@@ -87,19 +61,17 @@
       border-radius: 5px;
       font-size: 12px;
       padding: 2px 6px;
-      margin-left: 10px;
       cursor: pointer;
     }
     .status-select {
       width: 100%;
+      margin-top: 5px;
       font-size: 14px;
       padding: 4px;
-      margin-top: 5px;
-      border-radius: 4px;
     }
     .status-date {
       font-size: 12px;
-      margin-top: 3px;
+      margin-top: 4px;
       padding: 4px;
       border-radius: 4px;
       color: white;
@@ -109,22 +81,17 @@
     .status-In-Transit { background-color: #f6ad55; }
     .status-Out-for-Delivery { background-color: #f56565; }
     .status-Delivered { background-color: #48bb78; }
-    .clear-history-btn {
-      background: #ff6b6b;
-      color: white;
-      padding: 4px 10px;
-      font-size: 12px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
     .title-input {
       width: 100%;
       padding: 4px 6px;
+      margin-top: 6px;
       font-size: 13px;
-      margin-top: 5px;
       border: 1px solid #ccc;
       border-radius: 4px;
+    }
+    .type-icon {
+      font-size: 16px;
+      margin-right: 6px;
     }
   </style>
 </head>
@@ -132,7 +99,7 @@
   <div class="tracker-box">
     <h2>Track Your Package</h2>
     <form onsubmit="trackPackage(); return false;">
-      <input type="text" id="trackingNo" placeholder="Enter Tracking Number" autofocus />
+      <input type="text" id="trackingNo" placeholder="Enter Tracking Number" oninput="removeSpaces()" />
       <select id="courierSelect">
         <option value="">Select courier</option>
         <option value="colissimo">Colissimo</option>
@@ -140,50 +107,56 @@
         <option value="mondialrelay">Mondial Relay</option>
         <option value="ups">UPS</option>
       </select>
+      <select id="packageType">
+        <option value="receiving">📥 Receiving</option>
+        <option value="returning">📤 Returning</option>
+      </select>
       <div>
         <button id="clearBtn" type="button" onclick="clearFields()">Clear</button>
         <button id="trackBtn" type="submit">Enter</button>
       </div>
     </form>
-    <div id="result"></div>
-    <div class="recent-history" id="historyBox"></div>
+    <div id="historyBox"></div>
   </div>
 
   <script>
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') clearFields();
-    });
-
     function sanitizeInput(value) {
-      return value.replace(/\\s+/g, '').toUpperCase();
+      return value.replace(/\s+/g, '').toUpperCase();
     }
+
+    function removeSpaces() {
+      const input = document.getElementById('trackingNo');
+      input.value = sanitizeInput(input.value);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('trackingNo');
+      input.addEventListener('paste', function (e) {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        this.value = sanitizeInput(text);
+      });
+    });
 
     function clearFields() {
       document.getElementById('trackingNo').value = '';
       document.getElementById('courierSelect').value = '';
-      document.getElementById('result').innerText = '';
+      document.getElementById('packageType').value = 'receiving';
     }
 
     function trackPackage() {
-      let trackingNo = document.getElementById('trackingNo').value.trim();
+      let trackingNo = sanitizeInput(document.getElementById('trackingNo').value.trim());
+      document.getElementById('trackingNo').value = trackingNo;
       const courier = document.getElementById('courierSelect').value;
-      const resultDiv = document.getElementById('result');
+      const type = document.getElementById('packageType').value;
 
-      if (!trackingNo) {
-        resultDiv.innerText = 'Please enter a tracking number.';
-        return;
-      }
-      if (!courier) {
-        resultDiv.innerText = 'Please select a courier service.';
-        return;
-      }
+      if (!trackingNo || !courier) return;
 
-      trackingNo = sanitizeInput(trackingNo);
-      saveToHistory(trackingNo);
+      saveToHistory(trackingNo, type);
 
       const links = {
         colissimo: `https://www.laposte.fr/outils/suivre-vos-envois?code=${trackingNo}`,
-        chronopost: `https://www.chronopost.fr/fr/chrono-suivi?listeNumerosLT=${trackingNo}`,
+        chronopost: `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${trackingNo}`,
         mondialrelay: `https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${trackingNo}`,
         ups: `https://www.ups.com/track?loc=en_US&tracknum=${trackingNo}`
       };
@@ -191,10 +164,10 @@
       window.open(links[courier], '_blank');
     }
 
-    function saveToHistory(code) {
+    function saveToHistory(code, type) {
       let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       const existing = list.find(item => item.code === code);
-      if (!existing) list.unshift({ code, title: '', status: '', date: '' });
+      if (!existing) list.unshift({ code, title: '', status: '', date: '', type });
       if (list.length > 50) list.pop();
       localStorage.setItem('trackHistory', JSON.stringify(list));
       displayHistory();
@@ -221,27 +194,15 @@
       displayHistory();
     }
 
-    function clearHistory() {
-      localStorage.removeItem('trackHistory');
-      displayHistory();
-    }
-
     function displayHistory() {
       const container = document.getElementById('historyBox');
       const list = JSON.parse(localStorage.getItem('trackHistory')) || [];
-      if (list.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-      container.innerHTML = `
-        <h4>
-          <span>Recent Tracking:</span>
-          <button class="clear-history-btn" onclick="clearHistory()">Clear</button>
-        </h4>
-        ${list.map(item => `
+      container.innerHTML = list.map(item => {
+        const icon = item.type === 'returning' ? '↩️' : '📦';
+        return `
           <div class="recent-item">
             <div class="top">
-              <strong onclick="fillTracking('${item.code}')" style="cursor:pointer">${item.code}</strong>
+              <strong onclick="fillTracking('${item.code}')"><span class="type-icon">${icon}</span>${item.code}</strong>
               <button class="remove-btn" onclick="removeItem('${item.code}')">✕</button>
             </div>
             <input type="text" class="title-input" placeholder="Add a title..." value="${item.title || ''}" onchange="updateTitle('${item.code}', this.value)">
@@ -255,8 +216,8 @@
             </select>
             ${item.status ? `<div class="status-date status-${item.status.replace(/ /g, '-')}">${item.status} - ${item.date}</div>` : ''}
           </div>
-        `).join('')}
-      `;
+        `;
+      }).join('');
     }
 
     function fillTracking(code) {
