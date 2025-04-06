@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Package Tracker</title>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #e6f0f3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .tracker-box {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 340px;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    h2 {
+      margin-top: 0;
+      text-align: center;
+      color: #2a4d69;
+      margin-bottom: 20px;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      padding: 10px 16px;
+      margin: 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    #clearBtn { background: #ccc; color: #000; }
+    #trackBtn { background: #2a9d8f; color: #fff; }
+    #result {
+      margin-top: 20px;
+      color: #264653;
+      font-size: 14px;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .recent-history { margin-top: 20px; }
+    .recent-history h4 {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .recent-item {
+      background: #f2f2f2;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 5px;
+    }
+    .recent-item .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .remove-btn {
+      background: #e53e3e;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 12px;
+      padding: 2px 6px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .status-select {
+      width: 100%;
+      font-size: 14px;
+      padding: 4px;
+      margin-top: 5px;
+      border-radius: 4px;
+    }
+    .status-date {
+      font-size: 12px;
+      margin-top: 3px;
+      padding: 4px;
+      border-radius: 4px;
+      color: white;
+    }
+    .status-Ready-to-Ship { background-color: #a0aec0; }
+    .status-Shipped { background-color: #63b3ed; }
+    .status-In-Transit { background-color: #f6ad55; }
+    .status-Out-for-Delivery { background-color: #f56565; }
+    .status-Delivered { background-color: #48bb78; }
+    .clear-history-btn {
+      background: #ff6b6b;
+      color: white;
+      padding: 4px 10px;
+      font-size: 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .title-input {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 13px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="tracker-box">
+    <h2>Track Your Package</h2>
+    <form onsubmit="trackPackage(); return false;">
+      <input type="text" id="trackingNo" placeholder="Enter Tracking Number" autofocus />
+      <select id="courierSelect">
+        <option value="">Select courier</option>
+        <option value="colissimo">Colissimo</option>
+        <option value="chronopost">Chronopost</option>
+        <option value="mondialrelay">Mondial Relay</option>
+        <option value="ups">UPS</option>
+      </select>
+      <div>
+        <button id="clearBtn" type="button" onclick="clearFields()">Clear</button>
+        <button id="trackBtn" type="submit">Enter</button>
+      </div>
+    </form>
+    <div id="result"></div>
+    <div class="recent-history" id="historyBox"></div>
+  </div>
+
+  <script>
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') clearFields();
+    });
+
+    function sanitizeInput(value) {
+      return value.replace(/\\s+/g, '').toUpperCase();
+    }
+
+    function clearFields() {
+      document.getElementById('trackingNo').value = '';
+      document.getElementById('courierSelect').value = '';
+      document.getElementById('result').innerText = '';
+    }
+
+    function trackPackage() {
+      let trackingNo = document.getElementById('trackingNo').value.trim();
+      const courier = document.getElementById('courierSelect').value;
+      const resultDiv = document.getElementById('result');
+
+      if (!trackingNo) {
+        resultDiv.innerText = 'Please enter a tracking number.';
+        return;
+      }
+      if (!courier) {
+        resultDiv.innerText = 'Please select a courier service.';
+        return;
+      }
+
+      trackingNo = sanitizeInput(trackingNo);
+      saveToHistory(trackingNo);
+
+      const links = {
+        colissimo: `https://www.laposte.fr/outils/suivre-vos-envois?code=${trackingNo}`,
+        chronopost: `https://www.chronopost.fr/fr/chrono-suivi?listeNumerosLT=${trackingNo}`,
+        mondialrelay: `https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${trackingNo}`,
+        ups: `https://www.ups.com/track?loc=en_US&tracknum=${trackingNo}`
+      };
+
+      window.open(links[courier], '_blank');
+    }
+
+    function saveToHistory(code) {
+      let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
+      const existing = list.find(item => item.code === code);
+      if (!existing) list.unshift({ code, title: '', status: '', date: '' });
+      if (list.length > 50) list.pop();
+      localStorage.setItem('trackHistory', JSON.stringify(list));
+      displayHistory();
+    }
+
+    function updateStatus(code, status) {
+      let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
+      const now = new Date().toLocaleString();
+      list = list.map(item => item.code === code ? { ...item, status, date: now } : item);
+      localStorage.setItem('trackHistory', JSON.stringify(list));
+      displayHistory();
+    }
+
+    function updateTitle(code, title) {
+      let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
+      list = list.map(item => item.code === code ? { ...item, title } : item);
+      localStorage.setItem('trackHistory', JSON.stringify(list));
+    }
+
+    function removeItem(code) {
+      let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
+      list = list.filter(item => item.code !== code);
+      localStorage.setItem('trackHistory', JSON.stringify(list));
+      displayHistory();
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('trackHistory');
+      displayHistory();
+    }
+
+    function displayHistory() {
+      const container = document.getElementById('historyBox');
+      const list = JSON.parse(localStorage.getItem('trackHistory')) || [];
+      if (list.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+      container.innerHTML = `
+        <h4>
+          <span>Recent Tracking:</span>
+          <button class="clear-history-btn" onclick="clearHistory()">Clear</button>
+        </h4>
+        ${list.map(item => `
+          <div class="recent-item">
+            <div class="top">
+              <strong onclick="fillTracking('${item.code}')" style="cursor:pointer">${item.code}</strong>
+              <button class="remove-btn" onclick="removeItem('${item.code}')">✕</button>
+            </div>
+            <input type="text" class="title-input" placeholder="Add a title..." value="${item.title || ''}" onchange="updateTitle('${item.code}', this.value)">
+            <select class="status-select" onchange="updateStatus('${item.code}', this.value)">
+              <option value="">Mark Status</option>
+              <option value="Ready to Ship" ${item.status === 'Ready to Ship' ? 'selected' : ''}>Ready to Ship</option>
+              <option value="Shipped" ${item.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+              <option value="In Transit" ${item.status === 'In Transit' ? 'selected' : ''}>In Transit</option>
+              <option value="Out for Delivery" ${item.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
+              <option value="Delivered" ${item.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+            </select>
+            ${item.status ? `<div class="status-date status-${item.status.replace(/ /g, '-')}">${item.status} - ${item.date}</div>` : ''}
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function fillTracking(code) {
+      document.getElementById('trackingNo').value = code;
+    }
+
+    displayHistory();
+  </script>
+</body>
+</html>
