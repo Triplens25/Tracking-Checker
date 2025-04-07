@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -98,6 +97,10 @@
       vertical-align: middle;
       margin-right: 6px;
     }
+    .clickable-code {
+      cursor: pointer;
+      color: #2a4d69;
+    }
   </style>
 </head>
 <body>
@@ -122,9 +125,7 @@
       </div>
     </form>
     <div id="historyBox"></div>
-  </div>
-
-  <script>
+  </div>  <script>
     const courierLogos = {
       colissimo: 'https://i.ibb.co/LdmThvR9/1000091495-removebg-preview.png',
       chronopost: 'https://i.ibb.co/DPDhPfbc/1000091498-removebg-preview.png',
@@ -132,15 +133,20 @@
       ups: 'https://i.ibb.co/jkc0qc44/ups-logo-svg-vector.png'
     };
 
+    const trackingLinks = {
+      colissimo: code => `https://www.laposte.fr/outils/suivre-vos-envois?code=${code}`,
+      chronopost: code => `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${code}`,
+      mondialrelay: code => `https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${code}`,
+      ups: code => `https://www.ups.com/track?loc=en_US&tracknum=${code}`
+    };
+
     function sanitizeInput(value) {
       return value.replace(/\s+/g, '').toUpperCase();
     }
-
     function removeSpaces() {
       const input = document.getElementById('trackingNo');
       input.value = sanitizeInput(input.value);
     }
-
     document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById('trackingNo');
       input.addEventListener('paste', function (e) {
@@ -149,33 +155,20 @@
         this.value = sanitizeInput(text);
       });
     });
-
     function clearFields() {
       document.getElementById('trackingNo').value = '';
       document.getElementById('courierSelect').value = '';
       document.getElementById('packageType').value = 'receiving';
     }
-
     function trackPackage() {
       let trackingNo = sanitizeInput(document.getElementById('trackingNo').value.trim());
       document.getElementById('trackingNo').value = trackingNo;
       const courier = document.getElementById('courierSelect').value;
       const type = document.getElementById('packageType').value;
-
       if (!trackingNo || !courier) return;
-
       saveToHistory(trackingNo, type, courier);
-
-      const links = {
-        colissimo: `https://www.laposte.fr/outils/suivre-vos-envois?code=${trackingNo}`,
-        chronopost: `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${trackingNo}`,
-        mondialrelay: `https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${trackingNo}`,
-        ups: `https://www.ups.com/track?loc=en_US&tracknum=${trackingNo}`
-      };
-
-      window.open(links[courier], '_blank');
+      window.open(trackingLinks[courier](trackingNo), '_blank');
     }
-
     function saveToHistory(code, type, courier) {
       let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       const existing = list.find(item => item.code === code);
@@ -184,7 +177,6 @@
       localStorage.setItem('trackHistory', JSON.stringify(list));
       displayHistory();
     }
-
     function updateStatus(code, status) {
       let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       const now = new Date().toLocaleString();
@@ -192,31 +184,29 @@
       localStorage.setItem('trackHistory', JSON.stringify(list));
       displayHistory();
     }
-
     function updateTitle(code, title) {
       let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       list = list.map(item => item.code === code ? { ...item, title } : item);
       localStorage.setItem('trackHistory', JSON.stringify(list));
     }
-
     function removeItem(code) {
       let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       list = list.filter(item => item.code !== code);
       localStorage.setItem('trackHistory', JSON.stringify(list));
       displayHistory();
     }
-
     function displayHistory() {
       const container = document.getElementById('historyBox');
       const list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       container.innerHTML = list.map(item => {
         const icon = item.type === 'returning' ? '↩️' : '📦';
         const logo = courierLogos[item.courier] ? `<img src="${courierLogos[item.courier]}" alt="${item.courier}" class="logo-img">` : '';
+        const link = trackingLinks[item.courier] ? trackingLinks[item.courier](item.code) : '#';
         return `
           <div class="recent-item">
             <div class="top">
-              <strong onclick="fillTracking('${item.code}')">
-                ${logo} <span class="type-icon">${icon}</span>${item.code}
+              <strong class="clickable-code" onclick="window.open('${link}', '_blank')">
+                ${logo}<span class="type-icon">${icon}</span>${item.code}
               </strong>
               <button class="remove-btn" onclick="removeItem('${item.code}')">✕</button>
             </div>
@@ -234,12 +224,6 @@
         `;
       }).join('');
     }
-
-    function fillTracking(code) {
-      document.getElementById('trackingNo').value = code;
-    }
-
     displayHistory();
-  </script>
-</body>
+  </script></body>
 </html>
