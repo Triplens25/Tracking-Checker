@@ -90,7 +90,12 @@
       border-radius: 4px;
     }
     .type-icon {
-      font-size: 16px;
+      margin-right: 6px;
+    }
+    .logo-img {
+      height: 20px;
+      width: auto;
+      vertical-align: middle;
       margin-right: 6px;
     }
   </style>
@@ -108,8 +113,8 @@
         <option value="ups">UPS</option>
       </select>
       <select id="packageType">
-        <option value="receiving">📥 Receiving</option>
-        <option value="returning">📤 Returning</option>
+        <option value="receiving">📦 Receiving</option>
+        <option value="returning">↩️ Returning</option>
       </select>
       <div>
         <button id="clearBtn" type="button" onclick="clearFields()">Clear</button>
@@ -120,6 +125,13 @@
   </div>
 
   <script>
+    const courierLogos = {
+      colissimo: 'https://i.ibb.co/LdmThvR9/1000091495-removebg-preview.png',
+      chronopost: 'https://i.ibb.co/DPDhPfbc/1000091498-removebg-preview.png',
+      mondialrelay: 'https://i.ibb.co/wZb8xq4v/1000091500-removebg-preview.png',
+      ups: 'https://i.ibb.co/jkc0qc44/ups-logo-svg-vector.png'
+    };
+
     function sanitizeInput(value) {
       return value.replace(/\s+/g, '').toUpperCase();
     }
@@ -152,7 +164,7 @@
 
       if (!trackingNo || !courier) return;
 
-      saveToHistory(trackingNo, type);
+      saveToHistory(trackingNo, type, courier);
 
       const links = {
         colissimo: `https://www.laposte.fr/outils/suivre-vos-envois?code=${trackingNo}`,
@@ -164,10 +176,10 @@
       window.open(links[courier], '_blank');
     }
 
-    function saveToHistory(code, type) {
+    function saveToHistory(code, type, courier) {
       let list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       const existing = list.find(item => item.code === code);
-      if (!existing) list.unshift({ code, title: '', status: '', date: '', type });
+      if (!existing) list.unshift({ code, title: '', status: '', date: '', type, courier });
       if (list.length > 50) list.pop();
       localStorage.setItem('trackHistory', JSON.stringify(list));
       displayHistory();
@@ -199,10 +211,13 @@
       const list = JSON.parse(localStorage.getItem('trackHistory')) || [];
       container.innerHTML = list.map(item => {
         const icon = item.type === 'returning' ? '↩️' : '📦';
+        const logo = courierLogos[item.courier] ? `<img src="${courierLogos[item.courier]}" alt="${item.courier}" class="logo-img">` : '';
         return `
           <div class="recent-item">
             <div class="top">
-              <strong onclick="fillTracking('${item.code}')"><span class="type-icon">${icon}</span>${item.code}</strong>
+              <strong onclick="fillTracking('${item.code}')">
+                ${logo} <span class="type-icon">${icon}</span>${item.code}
+              </strong>
               <button class="remove-btn" onclick="removeItem('${item.code}')">✕</button>
             </div>
             <input type="text" class="title-input" placeholder="Add a title..." value="${item.title || ''}" onchange="updateTitle('${item.code}', this.value)">
